@@ -342,6 +342,7 @@
 
 <nav class="nav">
   <button class="nav-btn active" onclick="show('today', this)">Today</button>
+  <button class="nav-btn" onclick="show('whoop', this)">Whoop</button>
   <button class="nav-btn" onclick="show('diet', this)">Diet</button>
   <button class="nav-btn" onclick="show('training', this)">Training</button>
   <button class="nav-btn" onclick="show('supplements', this)">Supplements</button>
@@ -386,6 +387,65 @@
 
   <!-- Weight history -->
   <div id="weight-history" style="display: flex; flex-direction: column; gap: 6px;"></div>
+</div>
+
+<!-- WHOOP -->
+<div id="whoop" class="section">
+  <h2 class="section-title">Whoop Log</h2>
+  <p class="section-sub">DAILY RECOVERY · HRV · SLEEP · STRAIN</p>
+
+  <!-- Log form -->
+  <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 20px;">
+    <div style="font-size: 10px; color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 14px; font-family: monospace;">Log Today's Whoop Data</div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+      <div>
+        <div style="font-size: 9px; color: var(--muted); margin-bottom: 4px; font-family: monospace; text-transform: uppercase;">Recovery %</div>
+        <input id="w-recovery" type="number" min="0" max="100" placeholder="e.g. 85"
+          style="width:100%;background:var(--subtle);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:monospace;font-size:14px;outline:none;"/>
+      </div>
+      <div>
+        <div style="font-size: 9px; color: var(--muted); margin-bottom: 4px; font-family: monospace; text-transform: uppercase;">HRV (ms)</div>
+        <input id="w-hrv" type="number" min="0" max="200" placeholder="e.g. 72"
+          style="width:100%;background:var(--subtle);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:monospace;font-size:14px;outline:none;"/>
+      </div>
+      <div>
+        <div style="font-size: 9px; color: var(--muted); margin-bottom: 4px; font-family: monospace; text-transform: uppercase;">RHR (bpm)</div>
+        <input id="w-rhr" type="number" min="30" max="100" placeholder="e.g. 52"
+          style="width:100%;background:var(--subtle);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:monospace;font-size:14px;outline:none;"/>
+      </div>
+      <div>
+        <div style="font-size: 9px; color: var(--muted); margin-bottom: 4px; font-family: monospace; text-transform: uppercase;">Sleep %</div>
+        <input id="w-sleep" type="number" min="0" max="100" placeholder="e.g. 83"
+          style="width:100%;background:var(--subtle);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:monospace;font-size:14px;outline:none;"/>
+      </div>
+      <div>
+        <div style="font-size: 9px; color: var(--muted); margin-bottom: 4px; font-family: monospace; text-transform: uppercase;">Sleep Hours</div>
+        <input id="w-hours" type="number" min="0" max="12" step="0.1" placeholder="e.g. 7.5"
+          style="width:100%;background:var(--subtle);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:monospace;font-size:14px;outline:none;"/>
+      </div>
+      <div>
+        <div style="font-size: 9px; color: var(--muted); margin-bottom: 4px; font-family: monospace; text-transform: uppercase;">Strain</div>
+        <input id="w-strain" type="number" min="0" max="21" step="0.1" placeholder="e.g. 14.2"
+          style="width:100%;background:var(--subtle);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:monospace;font-size:14px;outline:none;"/>
+      </div>
+    </div>
+
+    <button onclick="logWhoop()" style="width:100%;background:var(--accent);color:var(--bg);border:none;border-radius:8px;padding:12px;font-family:monospace;font-size:12px;font-weight:500;cursor:pointer;letter-spacing:0.08em;text-transform:uppercase;">Log Today</button>
+  </div>
+
+  <!-- Today's recommendation -->
+  <div id="whoop-recommendation" style="display:none; margin-bottom: 20px;"></div>
+
+  <!-- 7 day chart -->
+  <h3 style="margin-bottom: 12px;">Recovery Trend</h3>
+  <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+    <canvas id="whoop-chart" height="100" style="width:100%;display:block;"></canvas>
+  </div>
+
+  <!-- History -->
+  <h3 style="margin-bottom: 12px;">History</h3>
+  <div id="whoop-history" style="display:flex;flex-direction:column;gap:8px;"></div>
 </div>
 
 <!-- DIET -->
@@ -1068,13 +1128,165 @@
     ctx.fillText(weights[weights.length-1] + 'kg', lastX - 6, lastY - 6);
   }
 
-  // Init
+  // ── WHOOP LOGGING ──────────────────────────────
+  function logWhoop() {
+    const recovery = parseInt(document.getElementById('w-recovery').value);
+    const hrv      = parseInt(document.getElementById('w-hrv').value);
+    const rhr      = parseInt(document.getElementById('w-rhr').value);
+    const sleep    = parseInt(document.getElementById('w-sleep').value);
+    const hours    = parseFloat(document.getElementById('w-hours').value);
+    const strain   = parseFloat(document.getElementById('w-strain').value);
+
+    if (!recovery) { alert('Please enter at least your Recovery %'); return; }
+
+    const today = getTodayKey();
+    const log = load('whoop_log', []);
+    const existing = log.findIndex(e => e.date === today);
+    const entry = { date: today, recovery, hrv, rhr, sleep, hours, strain };
+    if (existing >= 0) log[existing] = entry;
+    else log.push(entry);
+    log.sort((a,b) => a.date.localeCompare(b.date));
+    save('whoop_log', log);
+
+    // Clear inputs
+    ['w-recovery','w-hrv','w-rhr','w-sleep','w-hours','w-strain'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+
+    renderWhoopHistory();
+    renderWhoopChart();
+    renderWhoopRecommendation(entry);
+  }
+
+  function getRecoveryColor(r) {
+    if (r >= 67) return '#7EC8A4';
+    if (r >= 34) return '#E8D5A3';
+    return '#E87C5A';
+  }
+
+  function getTrainingRecommendation(entry) {
+    const r = entry.recovery || 0;
+    const h = entry.hrv || 0;
+    if (r >= 67) return { label: 'Green — Train Hard', note: `Recovery ${r}% · HRV ${h}. Body is ready. Push intensity today.`, color: '#7EC8A4' };
+    if (r >= 34) return { label: 'Yellow — Train Moderate', note: `Recovery ${r}% · HRV ${h}. Keep intensity controlled. Listen to your body.`, color: '#E8D5A3' };
+    return { label: 'Red — Recover', note: `Recovery ${r}% · HRV ${h}. Prioritise sleep and nutrition today. Easy session or rest.`, color: '#E87C5A' };
+  }
+
+  function renderWhoopRecommendation(entry) {
+    const el = document.getElementById('whoop-recommendation');
+    const rec = getTrainingRecommendation(entry);
+    el.style.display = 'block';
+    el.innerHTML = `<div style="background:var(--surface);border:1px solid ${rec.color}33;border-left:3px solid ${rec.color};border-radius:10px;padding:14px 16px;">
+      <div style="font-size:13px;color:${rec.color};font-family:monospace;margin-bottom:4px;">${rec.label}</div>
+      <div style="font-size:11px;color:var(--muted);">${rec.note}</div>
+    </div>`;
+  }
+
+  function renderWhoopHistory() {
+    const log = load('whoop_log', []);
+    const container = document.getElementById('whoop-history');
+    container.innerHTML = '';
+    if (log.length === 0) {
+      container.innerHTML = '<div style="font-size:11px;color:var(--muted);text-align:center;padding:20px;">No data yet — log your first Whoop entry above</div>';
+      return;
+    }
+    [...log].reverse().slice(0, 14).forEach(entry => {
+      const d = new Date(entry.date + 'T12:00:00');
+      const label = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+      const color = getRecoveryColor(entry.recovery);
+      const row = document.createElement('div');
+      row.style.cssText = `background:var(--surface);border:1px solid var(--border);border-left:3px solid ${color};border-radius:10px;padding:12px 14px;`;
+      row.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="font-size:11px;color:var(--muted);font-family:monospace;">${label}</span>
+          <span style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:${color};">${entry.recovery}%</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+          ${entry.hrv ? `<div style="text-align:center;"><div style="font-size:9px;color:var(--muted);margin-bottom:2px;">HRV</div><div style="font-size:13px;font-family:monospace;">${entry.hrv}</div></div>` : ''}
+          ${entry.rhr ? `<div style="text-align:center;"><div style="font-size:9px;color:var(--muted);margin-bottom:2px;">RHR</div><div style="font-size:13px;font-family:monospace;">${entry.rhr}</div></div>` : ''}
+          ${entry.sleep ? `<div style="text-align:center;"><div style="font-size:9px;color:var(--muted);margin-bottom:2px;">Sleep</div><div style="font-size:13px;font-family:monospace;">${entry.sleep}%</div></div>` : ''}
+          ${entry.hours ? `<div style="text-align:center;"><div style="font-size:9px;color:var(--muted);margin-bottom:2px;">Hours</div><div style="font-size:13px;font-family:monospace;">${entry.hours}h</div></div>` : ''}
+        </div>`;
+      container.appendChild(row);
+    });
+  }
+
+  function renderWhoopChart() {
+    const log = load('whoop_log', []);
+    const canvas = document.getElementById('whoop-chart');
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = 100 * dpr;
+    ctx.scale(dpr, dpr);
+    const W = rect.width, H = 100;
+    ctx.clearRect(0, 0, W, H);
+
+    const recent = log.slice(-14);
+    if (recent.length < 2) {
+      ctx.fillStyle = '#444';
+      ctx.font = '11px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('Log at least 2 days to see your recovery trend', W/2, H/2);
+      return;
+    }
+
+    const pad = { top: 10, right: 10, bottom: 20, left: 30 };
+    const chartW = W - pad.left - pad.right;
+    const chartH = H - pad.top - pad.bottom;
+    const xScale = i => pad.left + (i / (recent.length - 1)) * chartW;
+    const yScale = v => pad.top + chartH - (v / 100) * chartH;
+
+    // Zone bands
+    ctx.fillStyle = 'rgba(126,200,164,0.05)';
+    ctx.fillRect(pad.left, yScale(100), chartW, yScale(67) - yScale(100));
+    ctx.fillStyle = 'rgba(232,213,163,0.05)';
+    ctx.fillRect(pad.left, yScale(67), chartW, yScale(34) - yScale(67));
+    ctx.fillStyle = 'rgba(232,124,90,0.05)';
+    ctx.fillRect(pad.left, yScale(34), chartW, yScale(0) - yScale(34));
+
+    // Line
+    ctx.beginPath();
+    ctx.strokeStyle = '#E8D5A3';
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    recent.forEach((e, i) => { i === 0 ? ctx.moveTo(xScale(i), yScale(e.recovery)) : ctx.lineTo(xScale(i), yScale(e.recovery)); });
+    ctx.stroke();
+
+    // Dots
+    recent.forEach((e, i) => {
+      ctx.beginPath();
+      ctx.arc(xScale(i), yScale(e.recovery), 4, 0, Math.PI * 2);
+      ctx.fillStyle = getRecoveryColor(e.recovery);
+      ctx.fill();
+    });
+
+    // Day labels
+    ctx.font = '8px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#555';
+    recent.forEach((e, i) => {
+      if (i % 2 === 0 || i === recent.length - 1) {
+        const d = new Date(e.date + 'T12:00:00');
+        ctx.fillText(d.toLocaleDateString('en-GB', { weekday: 'short' }), xScale(i), H - 4);
+      }
+    });
+  }
+
+  // Init Whoop
   window.addEventListener('load', () => {
     renderSessions();
     renderWeightHistory();
-    const history = load('weight_log', []);
-    if (history.length > 0) {
-      updateToGoal(history[history.length - 1].weight);
+    renderWhoopHistory();
+    const wlog = load('whoop_log', []);
+    if (wlog.length > 0) {
+      setTimeout(renderWhoopChart, 100);
+      renderWhoopRecommendation(wlog[wlog.length - 1]);
+    }
+    const wlog2 = load('weight_log', []);
+    if (wlog2.length > 0) {
+      updateToGoal(wlog2[wlog2.length - 1].weight);
       setTimeout(renderWeightChart, 100);
     }
   });
