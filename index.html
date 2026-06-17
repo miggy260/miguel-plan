@@ -356,6 +356,13 @@
   <h2 class="section-title">Today</h2>
   <p class="section-sub" id="today-date"></p>
 
+  <!-- Top 3 Tasks -->
+  <h3>🎯 Top 3 Tasks</h3>
+  <div id="tasks-container" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;"></div>
+  <button onclick="addTask()" style="width:100%;background:var(--subtle);border:1px dashed var(--border);border-radius:10px;padding:10px;font-family:monospace;font-size:11px;color:var(--muted);cursor:pointer;margin-bottom:20px;">+ Add task (max 3)</button>
+
+  <hr class="divider"/>
+
   <!-- Morning Routine -->
   <h3>☀️ Morning Routine</h3>
   <div id="morning-checks" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;"></div>
@@ -1447,7 +1454,65 @@
     });
   }
 
-  // ── BUDGET ──────────────────────────────────────
+  // ── TOP 3 TASKS ─────────────────────────────────
+  function getTaskKey() { return 'tasks_' + getTodayKey(); }
+
+  function renderTasks() {
+    const tasks = load(getTaskKey(), []);
+    const container = document.getElementById('tasks-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (tasks.length === 0) {
+      container.innerHTML = '<div style="font-size:11px;color:var(--muted);text-align:center;padding:12px;font-family:monospace;">No tasks yet — what are your 3 most important things today?</div>';
+      return;
+    }
+
+    tasks.forEach((task, index) => {
+      const div = document.createElement('div');
+      div.style.cssText = `background:var(--surface);border:1px solid ${task.done ? '#7EC8A444' : 'var(--border)'};border-left:3px solid ${task.done ? '#7EC8A4' : 'var(--accent)'};border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;`;
+      div.innerHTML = `
+        <div onclick="toggleTask(${index})" style="width:22px;height:22px;border-radius:6px;background:${task.done ? '#7EC8A4' : 'transparent'};border:${task.done ? 'none' : '1px solid #444'};display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all 0.2s;">
+          ${task.done ? '<svg width="12" height="9" viewBox="0 0 12 9" fill="none"><path d="M1 4L4.5 7.5L11 1" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : ''}
+        </div>
+        <div style="flex:1;font-size:13px;color:${task.done ? '#555' : 'var(--text)'};text-decoration:${task.done ? 'line-through' : 'none'};">${task.text}</div>
+        <div style="font-size:10px;color:var(--accent);font-family:monospace;flex-shrink:0;">#${index + 1}</div>
+        <button onclick="deleteTask(${index})" style="background:none;border:none;color:#444;cursor:pointer;font-size:14px;padding:0;">✕</button>
+      `;
+      container.appendChild(div);
+    });
+
+    // All tasks done message
+    if (tasks.length === 3 && tasks.every(t => t.done)) {
+      const msg = document.createElement('div');
+      msg.style.cssText = 'background:#0F1A0A;border:1px solid #C8F5A033;border-radius:8px;padding:10px;text-align:center;margin-top:4px;';
+      msg.innerHTML = '<div style="font-size:12px;color:#7EC8A4;font-family:monospace;">All 3 done. Productive day.</div>';
+      container.appendChild(msg);
+    }
+  }
+
+  function addTask() {
+    const tasks = load(getTaskKey(), []);
+    if (tasks.length >= 3) { alert('Maximum 3 tasks per day — keep it focused.'); return; }
+    const text = prompt(`Task ${tasks.length + 1} of 3:`);
+    if (!text || !text.trim()) return;
+    tasks.push({ text: text.trim(), done: false });
+    save(getTaskKey(), tasks);
+    renderTasks();
+  }
+
+  function toggleTask(index) {
+    const tasks = load(getTaskKey(), []);
+    tasks[index].done = !tasks[index].done;
+    save(getTaskKey(), tasks);
+    renderTasks();
+  }
+
+  function deleteTask(index) {
+    const tasks = load(getTaskKey(), []).filter((_, i) => i !== index);
+    save(getTaskKey(), tasks);
+    renderTasks();
+  }
   const BUDGET_LIMIT = 600;
   const CATEGORIES = [
     { id: 'going_out', label: '🍻 Going Out', limit: 150, color: '#E87C5A' },
@@ -1625,6 +1690,7 @@
   // Init
   window.addEventListener('load', () => {
     renderSessions();
+    renderTasks();
     renderRoutine(MORNING_ROUTINE, 'morning-checks', 'morning_');
     renderRoutine(EVENING_ROUTINE, 'evening-checks', 'evening_');
     renderWeightHistory();
