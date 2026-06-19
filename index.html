@@ -1033,7 +1033,9 @@
   // Sessions config — Miguel's actual weekly plan
   const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const SESSIONS = {
-    0: [], // Sunday - rest
+    0: [ // Sunday — Pull 2 this week
+      {id:'pull2', label:'Pull 2', icon:'💪', color:'var(--accent)', note:'Deadlift · Pull Ups · Rows · Face Pulls · Curls'},
+    ],
     1: [ // Monday
       {id:'legs', label:'Legs Strength', icon:'🦵', color:'var(--accent2)', note:'Exhale on leg press — no Valsalva'},
       {id:'run_mon', label:'5km Run', icon:'🏃', color:'#88BBEE', note:'Easy Zone 2 pace'},
@@ -1056,8 +1058,8 @@
       {id:'sauna_fri', label:'Sauna 15–20min', icon:'🔥', color:'#E8A05A', note:'Within 30min of finishing · Electrolytes after'},
     ],
     6: [ // Saturday
+      {id:'push2_sat', label:'Push 2', icon:'🏋️', color:'var(--accent3)', note:'Missed Friday — Bench · Incline · OHP · Lateral Giant Set · Triceps'},
       {id:'run_sat', label:'9.5km Long Run', icon:'🏃', color:'#88BBEE', note:'Easy pace · Bring electrolytes · Gel or banana at 5km'},
-      {id:'pull2', label:'Pull 2', icon:'💪', color:'var(--accent)', note:'Deadlift · Pull Ups · Rows · Face Pulls · Curls'},
     ],
   };
 
