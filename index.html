@@ -372,6 +372,7 @@
   <!-- Today's sessions -->
   <h3>Today's Sessions</h3>
   <div id="weekly-km-summary"></div>
+  <div id="yesterday-run-fix"></div>
   <div id="session-checks" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;"></div>
 
   <hr class="divider"/>
@@ -1104,6 +1105,45 @@
     </div>`;
   }
 
+  function renderYesterdayFix() {
+    const el = document.getElementById('yesterday-run-fix');
+    if (!el) return;
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yKey = yesterday.toISOString().split('T')[0];
+    const yDow = yesterday.getDay();
+    const ySessions = (SESSIONS[yDow] || []).filter(isRunSession);
+    const yDone = load('sessions_' + yKey, {});
+    const yRunData = load('rundata_' + yKey, {});
+
+    const missingRuns = ySessions.filter(s => yDone[s.id] && !yRunData[s.id]?.distance);
+    if (missingRuns.length === 0) { el.innerHTML = ''; return; }
+
+    el.innerHTML = `<div style="background:var(--surface);border:1px solid #E8A05A44;border-left:3px solid #E8A05A;border-radius:10px;padding:14px 16px;margin-bottom:12px;">
+      <div style="font-size:11px;color:#E8A05A;font-family:monospace;margin-bottom:10px;">⚠️ Missing distance for yesterday's run${missingRuns.length>1?'s':''}</div>
+      ${missingRuns.map(s => `
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
+          <span style="font-size:11px;color:var(--muted);flex:1;">${s.label}</span>
+          <input type="number" step="0.01" placeholder="km" data-yfix-session="${s.id}" data-yfix-date="${yKey}"
+            style="width:70px;background:var(--subtle);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-family:monospace;font-size:12px;outline:none;" class="yfix-input"/>
+        </div>
+      `).join('')}
+    </div>`;
+
+    el.querySelectorAll('.yfix-input').forEach(input => {
+      input.onchange = (e) => {
+        const sessionId = e.target.dataset.yfixSession;
+        const date = e.target.dataset.yfixDate;
+        const data = load('rundata_' + date, {});
+        if (!data[sessionId]) data[sessionId] = {};
+        data[sessionId].distance = e.target.value;
+        save('rundata_' + date, data);
+        renderYesterdayFix();
+        renderWeeklyKmSummary();
+      };
+    });
+  }
+
   function renderSessions() {
     const dow = new Date().getDay();
     const todaySessions = SESSIONS[dow] || [];
@@ -1118,6 +1158,7 @@
       new Date().toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long', year:'numeric'}).toUpperCase();
 
     renderWeeklyKmSummary();
+    renderYesterdayFix();
 
     if (todaySessions.length === 0) {
       container.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;font-size:13px;color:var(--muted);text-align:center;">
