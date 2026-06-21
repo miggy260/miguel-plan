@@ -15,6 +15,17 @@ const EVENING_ITEMS = [
   { id: 'evening_skincare', label: 'Evening Skincare' },
 ]
 
+const PRE_RUN_ITEMS = [
+  { id: 'electrolyte_tablet', label: 'Electrolyte tablet in water (60 min before)' },
+  { id: 'snack', label: 'Banana or light snack (30 min before)' },
+  { id: 'shoes', label: 'Running shoes laced' },
+  { id: 'watch', label: 'Watch/Whoop charged and on wrist' },
+  { id: 'headphones', label: 'Headphones charged (if needed)' },
+  { id: 'route', label: 'Route planned — shaded or coastal if hot' },
+  { id: 'sunscreen', label: 'Sunscreen if before 6pm' },
+  { id: 'phone', label: 'Phone charged with location sharing on if running alone' },
+]
+
 // Sessions indexed by JS day-of-week (0=Sun)
 const SESSIONS_BY_DOW = {
   1: [
@@ -121,6 +132,8 @@ export default function Today() {
   // Routines
   const [morningDone, setMorningDone] = useState({})
   const [eveningDone, setEveningDone] = useState({})
+  const [preRunDone, setPreRunDone] = useState({})
+  const [preRunOpen, setPreRunOpen] = useState(true)
 
   // Sessions
   const [sessionDone, setSessionDone] = useState({})
@@ -150,13 +163,15 @@ export default function Today() {
       .select('*')
       .eq('date', today)
     if (data) {
-      const m = {}, e = {}
+      const m = {}, e = {}, p = {}
       data.forEach(r => {
         if (r.type === 'morning') m[r.item_id] = r.done
-        else e[r.item_id] = r.done
+        else if (r.type === 'evening') e[r.item_id] = r.done
+        else if (r.type === 'pre_run') p[r.item_id] = r.done
       })
       setMorningDone(m)
       setEveningDone(e)
+      setPreRunDone(p)
     }
   }, [today])
 
@@ -233,8 +248,8 @@ export default function Today() {
 
   // ── Routine toggle ──────────────────────────────────────────────────────────
   async function toggleRoutine(type, itemId) {
-    const stateMap = type === 'morning' ? morningDone : eveningDone
-    const setter = type === 'morning' ? setMorningDone : setEveningDone
+    const stateMap = type === 'morning' ? morningDone : type === 'evening' ? eveningDone : preRunDone
+    const setter = type === 'morning' ? setMorningDone : type === 'evening' ? setEveningDone : setPreRunDone
     const newDone = !stateMap[itemId]
 
     setter(prev => ({ ...prev, [itemId]: newDone }))
@@ -292,6 +307,9 @@ export default function Today() {
     setNewWeight('')
     setWeightLoading(false)
   }
+
+  const hasRunToday = todaySessions.some(s => s.isRun)
+  const preRunChecked = PRE_RUN_ITEMS.filter(i => preRunDone[i.id]).length
 
   const latestWeight = weightEntries.length ? weightEntries[weightEntries.length - 1].weight : null
   const kgToGoal = latestWeight ? (latestWeight - WEIGHT_GOAL).toFixed(1) : null
@@ -391,6 +409,45 @@ export default function Today() {
           </div>
         </div>
       </div>
+
+      {/* ── Pre-Run Checklist ── */}
+      {hasRunToday && (
+        <div className="card">
+          <button
+            className="flex items-center justify-between w-full"
+            onClick={() => setPreRunOpen(o => !o)}
+          >
+            <div className="flex items-center gap-3">
+              <p className="card-label">PRE-RUN CHECKLIST</p>
+              <span className="text-[10px] text-stone">{preRunChecked}/{PRE_RUN_ITEMS.length}</span>
+              {preRunChecked === PRE_RUN_ITEMS.length && (
+                <span className="text-[10px] text-sage">READY</span>
+              )}
+            </div>
+            <span className="text-stone text-xs">{preRunOpen ? '▲' : '▼'}</span>
+          </button>
+
+          {preRunOpen && (
+            <div className="mt-3 space-y-2">
+              {PRE_RUN_ITEMS.map(item => (
+                <label key={item.id} className="flex items-start gap-3 cursor-pointer group">
+                  <div
+                    onClick={() => toggleRoutine('pre_run', item.id)}
+                    className={`w-4 h-4 mt-0.5 rounded-sm border flex-shrink-0 flex items-center justify-center transition-colors cursor-pointer ${
+                      preRunDone[item.id] ? 'bg-gold border-gold' : 'border-dark-border group-hover:border-stone'
+                    }`}
+                  >
+                    {preRunDone[item.id] && <span className="text-[10px] text-surface font-bold">✓</span>}
+                  </div>
+                  <span className={`text-sm leading-snug transition-colors ${preRunDone[item.id] ? 'text-stone line-through' : 'text-ivory'}`}>
+                    {item.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Today's Sessions ── */}
       <div className="card">
