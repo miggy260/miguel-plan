@@ -102,3 +102,19 @@ create policy "anon full access" on session_completions for all to anon using (t
 -- alter table session_completions add column if not exists run_distance numeric(5,2);
 -- alter table session_completions add column if not exists run_pace text;
 -- alter table session_completions add column if not exists run_hr integer;
+
+-- ── Books ─────────────────────────────────────────────────────────────────────
+create table if not exists books (
+  id          uuid         primary key default gen_random_uuid(),
+  title       text         not null,
+  author      text,
+  status      text         not null default 'want_to_read', -- 'reading' | 'finished' | 'want_to_read'
+  started_at  date,
+  finished_at date,
+  rating      integer,     -- 1–5
+  notes       text,
+  created_at  timestamptz  default now()
+);
+
+alter table books enable row level security;
+create policy "anon full access" on books for all to anon using (true) with check (true);
