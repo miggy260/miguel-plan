@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    background-color: #0C0C0A;
+    color: #F0EDE6;
+  }
+
+  body {
+    font-family: 'DM Mono', ui-monospace, monospace;
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+  /* Remove number input spinners */
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+  }
+  input[type='number'] { -moz-appearance: textfield; }
+}
+
+@layer components {
+  .tab-btn {
+    @apply border-b-2 border-transparent text-stone text-[10px] tracking-widest uppercase px-5 py-3.5 cursor-pointer transition-all duration-200 whitespace-nowrap font-mono bg-transparent;
+  }
+  .tab-btn:hover { @apply text-ivory; }
+  .tab-btn.active { @apply border-gold text-gold; }
+
+  .card {
+    @apply bg-surface border border-dark-border rounded-xl p-4;
+  }
+
+  .card-label {
+    @apply text-[9px] text-stone tracking-widest uppercase mb-1.5;
+  }
+
+  .card-value {
+    @apply font-serif text-2xl font-bold;
+  }
+
+  .card-sub {
+    @apply text-[10px] text-stone mt-1;
+  }
+
+  .input-field {
+    @apply bg-subtle border border-dark-border rounded-lg px-3 py-2 text-ivory font-mono text-sm outline-none focus:border-stone transition-colors;
+  }
+
+  .btn-primary {
+    @apply bg-gold text-app-bg font-mono text-[11px] font-medium tracking-widest uppercase rounded-lg px-4 py-2.5 cursor-pointer transition-opacity hover:opacity-90;
+  }
+
+  .section-title {
+    @apply font-serif text-[28px] font-bold tracking-tight mb-1;
+  }
+
+  .section-sub {
+    @apply text-[11px] text-stone tracking-[0.05em] mb-7;
+  }
+
+  .divider {
+    @apply border-none border-t border-dark-border my-6;
+  }
+
+  .phase-block {
+    @apply bg-surface border border-dark-border border-l-4 rounded-xl p-[18px_20px] mb-3;
+  }
+}
